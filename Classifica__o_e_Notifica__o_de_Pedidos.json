@@ -1,0 +1,363 @@
+{
+  "name": "Classificação e Notificação de Pedidos",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/13yHudG_Qlb_PRF8MGCz6YgpJQc2Y3xVmuVYsMr47J-Y/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1346829842,
+          "mode": "list",
+          "cachedResultName": "Respostas ao formulário 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/13yHudG_Qlb_PRF8MGCz6YgpJQc2Y3xVmuVYsMr47J-Y/edit#gid=1346829842"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "eef98ec5-bb2f-4f12-99ea-e8f429956fbc",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "IBqpIFe35zqgW9cZ",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/models/facebook/bart-large-mnli",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n\"inputs\": \"{{$json[\"Descrição do pedido\"]}}\",\n\"parameters\": {\n\"candidate_labels\": [\"Support Request\", \"Hardware Device\", \"System Access\", \"Other\"]\n}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "81ac8f4e-de0d-4439-bd17-1ae103dec797",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const labels = $input.item.json.labels;\nconst scores = $input.item.json.scores;\nconst sequence = $input.item.json.sequence;\n\nlet maxIndex = 0;\nfor (let i = 1; i < scores.length; i++) {\n  if (scores[i] > scores[maxIndex]) maxIndex = i;\n}\n\nreturn {\n  json: {\n    Descrição: sequence,\n    Categoria: labels[maxIndex]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "0a2f2a28-af37-472b-8cc8-e82f7fb87d61",
+      "name": "Tabela IA"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        240
+      ],
+      "id": "5afde76d-722c-4286-94fc-f7b59b9f89e4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    Nome: $input.item.json[\"Nome\"],\n    NívelDeUrgência: $input.item.json[\"Nível de urgência\"]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        240
+      ],
+      "id": "ab3d23f5-5ca4-4915-b1d8-38e354b42c0b",
+      "name": "Tabela Nome"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e3933442-41a3-4e6e-a6c4-6cc42268626d",
+              "leftValue": "={{ $json.Categoria }}",
+              "rightValue": "Hardware Device",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        240
+      ],
+      "id": "0a54bf07-9dec-4f41-aef0-47ad857e1d9d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "stelmartinesz@gmail.com",
+        "subject": "Pedidos Internos ",
+        "message": "=Pedidos do dia:\n\n{{$json.corpo}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        140
+      ],
+      "id": "2f818d42-01c9-4636-a00f-a4830024b3d8",
+      "name": "E-mail para assistente TI",
+      "webhookId": "d2958090-0df9-44e4-85cf-f36cb62137b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2idw2ivpw5gcZTrl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "stella.nascimento@br.bosch.com",
+        "subject": "Pedidos Internos ",
+        "message": "=Pedidos do dia:\n\n{{$json.corpo}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        340
+      ],
+      "id": "7dcca16c-95e7-4c67-bba8-09bef9e6ab37",
+      "name": "E-mail para coordenador",
+      "webhookId": "d2958090-0df9-44e4-85cf-f36cb62137b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "2idw2ivpw5gcZTrl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const assistenteTI = [];\n\nfor (const item of $input.all()) {\n  const { Nome, Descrição, NívelDeUrgência } = item.json;\n  const linha = `- ${Nome}: ${Descrição} (Urgência: ${NívelDeUrgência})`;\n  assistenteTI.push(linha);\n}\n\nreturn [\n  {\n    json: {\n      corpo: assistenteTI.join(\"\\n\"),\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        140
+      ],
+      "id": "dd292b32-37e7-4e2e-91db-f65871e50b04",
+      "name": "Corpo para assistente TI"
+    },
+    {
+      "parameters": {
+        "jsCode": "const coordenador = [];\n\nfor (const item of $input.all()) {\n  const { Nome, Descrição, NívelDeUrgência } = item.json;\n  const linha = `- ${Nome}: ${Descrição} (Urgência: ${NívelDeUrgência})`;\n  coordenador.push(linha);\n}\n\nreturn [\n  {\n    json: {\n      corpo: coordenador.join(\"\\n\"),\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        340
+      ],
+      "id": "a41ca980-ef11-4ae6-9d0c-f87d6e371f14",
+      "name": "Corpo para coordenador"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tabela Nome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Tabela IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela IA": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela Nome": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Corpo para assistente TI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Corpo para coordenador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-mail para assistente TI": {
+      "main": [
+        []
+      ]
+    },
+    "Corpo para assistente TI": {
+      "main": [
+        [
+          {
+            "node": "E-mail para assistente TI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corpo para coordenador": {
+      "main": [
+        [
+          {
+            "node": "E-mail para coordenador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8446fa6a-4d69-4dde-9397-d08daf1ef25c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ae91ddf2c93bc041524635bf83898cc5b6c68dfe7ed0267f4d7cbb408fa0734a"
+  },
+  "id": "rFENRyrH8vMkrcEV",
+  "tags": [
+    {
+      "name": "Google Sheets",
+      "id": "3PqixpW0ygrBp3vx",
+      "createdAt": "2025-06-03T13:51:52.607Z",
+      "updatedAt": "2025-06-03T13:51:52.607Z"
+    },
+    {
+      "name": "Gmail",
+      "id": "BtCt6SjrRmSNR1uh",
+      "createdAt": "2025-06-03T13:51:56.479Z",
+      "updatedAt": "2025-06-03T13:51:56.479Z"
+    },
+    {
+      "name": "Hugging Face",
+      "id": "PN8Y0cLaV60Jn0qD",
+      "createdAt": "2025-06-03T13:52:11.308Z",
+      "updatedAt": "2025-06-03T13:52:11.308Z"
+    },
+    {
+      "name": "Classificação de Texto",
+      "id": "txwt1Aj1kIswyqKC",
+      "createdAt": "2025-06-03T13:54:16.374Z",
+      "updatedAt": "2025-06-03T13:54:16.374Z"
+    }
+  ]
+}
