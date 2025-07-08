@@ -1,14 +1,14 @@
-## 🤖 Classificação e Notificação de Pedidos com IA
-Este projeto utiliza n8n integrado à Hugging Face para classificar automaticamente descrições de pedidos com base em categorias predefinidas. Após a classificação, o fluxo organiza os dados coletados (nome, descrição do pedido, nível de urgência e categoria) e envia notificações por e-mail para os responsáveis,
+## 🤖 AI-Powered Request Classification and Notification
+This project uses n8n integrated with Hugging Face to automatically classify request descriptions based on predefined categories. After classification, the workflow organizes collected data (name, request description, urgency level, and category) and sends notification emails to the responsible parties.
 
-### 🧰 Tecnologias Utilizadas
-n8n – Automação do fluxo de trabalho
+### 🧰 Technologies Used
+n8n – Workflow automation
 
-Hugging Face (Zero-shot classification) – Classificação de texto via IA
+Hugging Face (Zero-shot classification) – AI-powered text classification
 
-Google Sheets – Fonte dos dados dos pedidos
+Google Sheets – Source of request data
 
-Gmail – Envio automatizado dos e-mails
+Gmail – Automated email sending
 
-### 🎯 Objetivo
-Automatizar a triagem de pedidos internos com base na descrição e encaminhá-los para o responsável correto, otimizando o tempo da equipe e centralizando a comunicação.
+### 🎯 Objective
+To automate internal request sorting based on descriptions and route them to the correct responsible person, optimizing team time and centralizing communication.
